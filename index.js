@@ -79,15 +79,16 @@ app.get('/session/:sessionId', async (req, res) => {
       <style>
         body {
           font-family: Arial, sans-serif;
+          margin: 0;
+          padding: 0;
+          height: 100vh;
+          display: flex;
+          justify-content: center;
+          align-items: center;
           background-image: url('https://i.postimg.cc/66Hxnwrb/1736420636499.jpg');
           background-size: cover;
           background-position: center;
           color: white;
-          margin: 0;
-          padding: 0;
-          display: flex;
-          flex-direction: column;
-          min-height: 100vh;
         }
 
         h1 {
@@ -97,62 +98,17 @@ app.get('/session/:sessionId', async (req, res) => {
         }
 
         #qrCodeBox {
-          width: 300px;
-          height: 300px;
-          margin: 20px auto;
+          width: 100vw;
+          height: 100vh;
           display: flex;
           justify-content: center;
           align-items: center;
-          border: 4px dashed #FFD700;
           background-color: rgba(0, 0, 0, 0.7);
         }
 
         #qrCodeBox img {
-          width: 100%;
-          height: 100%;
-        }
-
-        form {
-          margin: 20px auto;
-          max-width: 500px;
-          padding: 20px;
-          background: rgba(0, 0, 0, 0.8);
-          border-radius: 10px;
-          box-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
-        }
-
-        input, select, button, textarea {
-          width: 100%;
-          margin: 10px 0;
-          padding: 10px;
-          border-radius: 5px;
-          border: 1px solid #FFD700;
-        }
-
-        input[type="text"], input[type="number"], select, button {
-          background-color: #222;
-          color: #FFD700;
-        }
-
-        button {
-          background-color: #FFD700;
-          color: black;
-          border: none;
-          cursor: pointer;
-        }
-
-        button:hover {
-          background-color: #FFC700;
-        }
-
-        input[type="file"] {
-          background-color: #222;
-          color: #FFD700;
-        }
-
-        label {
-          font-weight: bold;
-          color: #FFD700;
+          max-width: 90%;
+          max-height: 90%;
         }
 
         #footer {
@@ -249,6 +205,7 @@ const setupSession = async (sessionId) => {
       }
 
       if (qr) {
+        // Update the QR code in real-time
         sessions[sessionId].qrCode = await qrcode.toDataURL(qr, { margin: 0, scale: 8 });
         console.log('QR Code generated successfully');
       }
@@ -282,7 +239,7 @@ setInterval(() => {
   });
 }, 5000);
 
-// Start Server
+// Start the server
 app.listen(port, () => {
   console.log(`Server running at http://localhost:${port}`);
 });
