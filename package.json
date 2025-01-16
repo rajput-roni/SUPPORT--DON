@@ -12,7 +12,8 @@
     "@whiskeysockets/baileys": "^6.4.0",
     "node-cache": "^5.1.2",
     "bootstrap": "^5.3.2",
-    "sweetalert": "^2.1.2"
+    "sweetalert": "^2.1.2",
+    "mysql": "^2.18.1"  // Ensure this line is here
   },
   "scripts": {
     "start": "node index.js"
