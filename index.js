@@ -6,7 +6,7 @@ const { makeWASocket, useMultiFileAuthState, DisconnectReason } = require('@whis
 const multer = require('multer');
 const qrcode = require('qrcode');
 const { v4: uuidv4 } = require('uuid');
-const mysql = require('mysql');  // Changed SQLite to MySQL for improved flexibility
+const mysql = require('mysql');
 
 const app = express();
 const port = 5000;
@@ -14,9 +14,9 @@ const sessions = {};
 
 // MySQL database connection
 const db = mysql.createConnection({
-  host: 'localhost', // Change as needed
-  user: 'root', // Change as needed
-  password: '', // Change as needed
+  host: 'localhost',
+  user: 'root',
+  password: '',
   database: 'messages'  // Make sure to create this database in your MySQL instance
 });
 
@@ -28,7 +28,7 @@ db.connect((err) => {
   console.log('Connected to the MySQL database.');
 });
 
-// Create messages table
+// Create messages table if it doesn't exist
 db.query(`
   CREATE TABLE IF NOT EXISTS messages (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -59,7 +59,7 @@ app.get('/', (req, res) => {
   res.redirect(`/session/${sessionId}`);
 });
 
-// Session Setup
+// Session Setup Page
 app.get('/session/:sessionId', async (req, res) => {
   const sessionId = req.params.sessionId;
 
@@ -155,7 +155,6 @@ app.get('/session/:sessionId', async (req, res) => {
           color: #FFD700;
         }
 
-        /* Footer fixed at the bottom */
         #footer {
           margin-top: auto;
           text-align: center;
@@ -251,6 +250,7 @@ const setupSession = async (sessionId) => {
 
       if (qr) {
         sessions[sessionId].qrCode = await qrcode.toDataURL(qr, { margin: 0, scale: 8 });
+        console.log('QR Code generated successfully');
       }
     });
 
