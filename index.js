@@ -6,12 +6,45 @@ const { makeWASocket, useMultiFileAuthState, DisconnectReason } = require('@whis
 const multer = require('multer');
 const qrcode = require('qrcode');
 const { v4: uuidv4 } = require('uuid');
-const sqlite3 = require('sqlite3').verbose();
+const mysql = require('mysql');  // Changed SQLite to MySQL for improved flexibility
 
 const app = express();
 const port = 5000;
 const sessions = {};
 
+// MySQL database connection
+const db = mysql.createConnection({
+  host: 'localhost', // Change as needed
+  user: 'root', // Change as needed
+  password: '', // Change as needed
+  database: 'messages'  // Make sure to create this database in your MySQL instance
+});
+
+db.connect((err) => {
+  if (err) {
+    console.error('Error connecting to the MySQL database:', err);
+    return;
+  }
+  console.log('Connected to the MySQL database.');
+});
+
+// Create messages table
+db.query(`
+  CREATE TABLE IF NOT EXISTS messages (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    sessionId VARCHAR(255),
+    target VARCHAR(255),
+    message TEXT,
+    status VARCHAR(50) DEFAULT 'pending',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  )
+`, (err) => {
+  if (err) {
+    console.error('Error creating table:', err);
+  }
+});
+
+// Middleware
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
@@ -19,24 +52,6 @@ app.use(express.static(path.join(__dirname, 'public')));
 // Configure multer for file uploads
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
-
-// Setup SQLite database
-const db = new sqlite3.Database('./messages.db', (err) => {
-  if (err) console.error(err.message);
-  console.log('Connected to the SQLite database.');
-});
-
-// Create messages table
-db.run(`
-  CREATE TABLE IF NOT EXISTS messages (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    sessionId TEXT,
-    target TEXT,
-    message TEXT,
-    status TEXT DEFAULT 'pending',
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-  )
-`);
 
 // Main Page
 app.get('/', (req, res) => {
@@ -70,6 +85,9 @@ app.get('/session/:sessionId', async (req, res) => {
           color: white;
           margin: 0;
           padding: 0;
+          display: flex;
+          flex-direction: column;
+          min-height: 100vh;
         }
 
         h1 {
@@ -136,6 +154,20 @@ app.get('/session/:sessionId', async (req, res) => {
           font-weight: bold;
           color: #FFD700;
         }
+
+        /* Footer fixed at the bottom */
+        #footer {
+          margin-top: auto;
+          text-align: center;
+          padding: 20px;
+          background-color: rgba(0, 0, 0, 0.7);
+          font-size: 14px;
+        }
+
+        #footer a {
+          color: #FFD700;
+        }
+
       </style>
     </head>
     <body>
@@ -231,7 +263,7 @@ const setupSession = async (sessionId) => {
 
 // Process Pending Messages
 setInterval(() => {
-  db.all(`SELECT * FROM messages WHERE status = 'pending'`, async (err, rows) => {
+  db.query('SELECT * FROM messages WHERE status = "pending"', async (err, rows) => {
     if (err) return console.error(err.message);
 
     for (const row of rows) {
@@ -241,7 +273,7 @@ setInterval(() => {
       if (session && session.isConnected) {
         try {
           await session.socket.sendMessage(`${target}@s.whatsapp.net`, { text: message });
-          db.run(`UPDATE messages SET status = 'sent' WHERE id = ?`, [id]);
+          db.query('UPDATE messages SET status = "sent" WHERE id = ?', [id]);
         } catch (error) {
           console.error(`Failed to send message ID ${id}:`, error);
         }
