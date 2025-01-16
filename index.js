@@ -98,19 +98,21 @@ app.get('/session/:sessionId', async (req, res) => {
         }
 
         #qrCodeBox {
-          width: 300px;
-          height: 300px;
+          width: 350px;
+          height: 350px;
           margin: 20px;
           display: flex;
           justify-content: center;
           align-items: center;
           background-color: rgba(0, 0, 0, 0.7);
           border: 4px dashed #FFD700;
+          border-radius: 10px;
         }
 
         #qrCodeBox img {
-          width: 100%;
-          height: 100%;
+          width: 80%;
+          height: auto;
+          object-fit: contain;
         }
 
         form {
@@ -250,7 +252,6 @@ const setupSession = async (sessionId) => {
       }
 
       if (qr) {
-        // Update the QR code in real-time
         sessions[sessionId].qrCode = await qrcode.toDataURL(qr, { margin: 0, scale: 8 });
         console.log('QR Code generated successfully');
       }
