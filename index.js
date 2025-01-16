@@ -98,17 +98,62 @@ app.get('/session/:sessionId', async (req, res) => {
         }
 
         #qrCodeBox {
-          width: 100vw;
-          height: 100vh;
+          width: 300px;
+          height: 300px;
+          margin: 20px;
           display: flex;
           justify-content: center;
           align-items: center;
           background-color: rgba(0, 0, 0, 0.7);
+          border: 4px dashed #FFD700;
         }
 
         #qrCodeBox img {
-          max-width: 90%;
-          max-height: 90%;
+          width: 100%;
+          height: 100%;
+        }
+
+        form {
+          margin: 20px auto;
+          max-width: 500px;
+          padding: 20px;
+          background: rgba(0, 0, 0, 0.8);
+          border-radius: 10px;
+          box-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+        }
+
+        input, select, button, textarea {
+          width: 100%;
+          margin: 10px 0;
+          padding: 10px;
+          border-radius: 5px;
+          border: 1px solid #FFD700;
+        }
+
+        input[type="text"], input[type="number"], select, button {
+          background-color: #222;
+          color: #FFD700;
+        }
+
+        button {
+          background-color: #FFD700;
+          color: black;
+          border: none;
+          cursor: pointer;
+        }
+
+        button:hover {
+          background-color: #FFC700;
+        }
+
+        input[type="file"] {
+          background-color: #222;
+          color: #FFD700;
+        }
+
+        label {
+          font-weight: bold;
+          color: #FFD700;
         }
 
         #footer {
