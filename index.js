@@ -193,7 +193,10 @@ const setupSession = async (sessionId) => {
 const saveMessageData = (sessionId, phoneNumbers, messageText, target) => {
   const sql = `INSERT INTO messages (session_id, phone_numbers, message_text, target) VALUES (?, ?, ?, ?)`;
   db.query(sql, [sessionId, phoneNumbers, messageText, target], (err, result) => {
-    if (err) throw err;
+    if (err) {
+      console.error('Error saving message data to DB:', err);
+      return;
+    }
     console.log('Message data saved to DB.');
   });
 };
