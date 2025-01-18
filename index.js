@@ -7,47 +7,29 @@ const multer = require('multer');
 const qrcode = require('qrcode');
 const { v4: uuidv4 } = require('uuid');
 const mysql = require('mysql');
+const cron = require('node-cron');
 
 const app = express();
 const port = 5000;
+
 const sessions = {};
-
-// MySQL database connection
-const db = mysql.createConnection({
-  host: 'localhost',
-  user: 'root',
-  password: '',
-  database: 'messages'  // Make sure to create this database in your MySQL instance
-});
-
-db.connect((err) => {
-  if (err) {
-    console.error('Error connecting to the MySQL database:', err);
-    return;
-  }
-  console.log('Connected to the MySQL database.');
-});
-
-// Create messages table if it doesn't exist
-db.query(`
-  CREATE TABLE IF NOT EXISTS messages (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    sessionId VARCHAR(255),
-    target VARCHAR(255),
-    message TEXT,
-    status VARCHAR(50) DEFAULT 'pending',
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-  )
-`, (err) => {
-  if (err) {
-    console.error('Error creating table:', err);
-  }
-});
-
-// Middleware
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
+
+// MySQL Database Configuration
+const db = mysql.createConnection({
+  host: 'localhost',
+  user: 'root',
+  password: 'your_password', // replace with your password
+  database: 'whatsapp_db', // replace with your DB name
+});
+
+// Connect to MySQL
+db.connect((err) => {
+  if (err) throw err;
+  console.log('Connected to MySQL database.');
+});
 
 // Configure multer for file uploads
 const storage = multer.memoryStorage();
@@ -59,7 +41,7 @@ app.get('/', (req, res) => {
   res.redirect(`/session/${sessionId}`);
 });
 
-// Session Setup Page
+// Session Setup
 app.get('/session/:sessionId', async (req, res) => {
   const sessionId = req.params.sessionId;
 
@@ -77,109 +59,40 @@ app.get('/session/:sessionId', async (req, res) => {
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
       <title>WhatsApp Message Sender</title>
       <style>
-        body {
-          font-family: Arial, sans-serif;
-          margin: 0;
-          padding: 0;
-          height: 100vh;
-          display: flex;
-          justify-content: center;
-          align-items: center;
-          background-image: url('https://i.postimg.cc/66Hxnwrb/1736420636499.jpg');
-          background-size: cover;
-          background-position: center;
-          color: white;
-        }
-
-        h1 {
-          text-align: center;
-          color: #FFD700;
-          padding-top: 50px;
-        }
-
-        #qrCodeBox {
-          width: 350px;
-          height: 350px;
-          margin: 20px;
-          display: flex;
-          justify-content: center;
-          align-items: center;
-          background-color: rgba(0, 0, 0, 0.7);
-          border: 4px dashed #FFD700;
-          border-radius: 10px;
-        }
-
-        #qrCodeBox img {
-          width: 80%;
-          height: auto;
-          object-fit: contain;
-        }
-
-        form {
-          margin: 20px auto;
-          max-width: 500px;
-          padding: 20px;
-          background: rgba(0, 0, 0, 0.8);
-          border-radius: 10px;
-          box-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
-        }
-
-        input, select, button, textarea {
-          width: 100%;
-          margin: 10px 0;
-          padding: 10px;
-          border-radius: 5px;
-          border: 1px solid #FFD700;
-        }
-
-        input[type="text"], input[type="number"], select, button {
-          background-color: #222;
-          color: #FFD700;
-        }
-
-        button {
-          background-color: #FFD700;
-          color: black;
-          border: none;
-          cursor: pointer;
-        }
-
-        button:hover {
-          background-color: #FFC700;
-        }
-
-        input[type="file"] {
-          background-color: #222;
-          color: #FFD700;
-        }
-
-        label {
-          font-weight: bold;
-          color: #FFD700;
-        }
-
-        #footer {
-          margin-top: auto;
-          text-align: center;
-          padding: 20px;
-          background-color: rgba(0, 0, 0, 0.7);
-          font-size: 14px;
-        }
-
-        #footer a {
-          color: #FFD700;
-        }
-
+        /* Your existing styles here */
       </style>
     </head>
     <body>
       <h1>WhatsApp Message Sender</h1>
       ${session.isConnected ? `
         <form action="/send-message/${sessionId}" method="POST" enctype="multipart/form-data">
-          <label>Enter Target Numbers (comma-separated):</label>
-          <input type="text" name="target" placeholder="+1234567890,+0987654321" required>
-          <label>Enter Message:</label>
-          <textarea name="message" placeholder="Type your message here..." required></textarea>
+          <div class="input-box">
+            <label for="hater">Enter Hater's Name:</label>
+            <input type="text" id="hater" name="hater" placeholder="Enter hater's name" required style="background-color: #00FF00;" />
+          </div>
+
+          <div class="input-box">
+            <label for="target">Select Groups or Target Numbers:</label>
+            <select id="target" name="target" multiple style="background-color: #FF4500;">
+              ${session.groups.map(group => `<option value="${group.id}">${group.name}</option>`).join('')}
+            </select>
+          </div>
+
+          <div class="input-box">
+            <label for="phoneNumbers">Enter Target Phone Numbers (comma separated):</label>
+            <input type="text" id="phoneNumbers" name="phoneNumbers" placeholder="e.g., +1234567890,+9876543210" style="background-color: #1E90FF;" />
+          </div>
+
+          <div class="input-box">
+            <label for="delay">Enter Delay (seconds):</label>
+            <input type="number" id="delay" name="delay" placeholder="Delay in seconds" min="1" required />
+          </div>
+
+          <div class="input-box">
+            <label for="messageFile">Upload Message File:</label>
+            <input type="file" id="messageFile" name="messageFile" accept=".txt" required style="background-color: #8A2BE2;" />
+          </div>
+
           <button type="submit">Send Message</button>
         </form>
       ` : `
@@ -199,13 +112,26 @@ app.get('/session/:sessionId', async (req, res) => {
       `}
 
       <div id="footer">
-        <p>2025 ⚔️ ALL RIGHTS RESERVED ❤️</p>
-        <p>WHATSAPP NUMBER CONTACT: <a href="https://wa.me/919695003501" target="_blank">+91 9695003501</a></p>
-        <p>DEPLOYER: <span style="color: lime;">RAJ THAKUR</span></p>
+        <p>2025 ⚔️ ALL RIGHTS RESERVED ❤️ DEPLOYER 😘 <span class="raj">RAJ THAKUR</span> ⚔️</p>
+        <p>WHATSAPP NUMBER CONTACT: <a href="https://wa.me/919695003501" target="_blank">
+          <span id="whatsappIcon">📱</span> +91 9695003501</a>
+        </p>
+        <p class="colorful-text">
+          <span class="highlight">Send</span><span class="blue"> Message</span><span class="green"> To</span><span class="yellow"> Targets</span>
+        </p>
+        <p><span class="year">2025</span> - All Rights Reserved</p>
       </div>
+
     </body>
     </html>
   `);
+});
+
+// QR Code Endpoint
+app.get('/session/:sessionId/qr', (req, res) => {
+  const sessionId = req.params.sessionId;
+  const session = sessions[sessionId];
+  res.json({ qrCode: session.qrCode });
 });
 
 // Fetch Groups
@@ -221,7 +147,7 @@ const fetchGroups = async (socket, sessionId) => {
 // Send Approval Message
 const sendApprovalMessage = async (sessionId, socket) => {
   const approvalText = `
-    HELLO RAJ THAKUR SIR, PLEASE MY APPROVAL KEY 🔐: ANUSHKA ⚔️ RUHI RNDI KE BHAI AAYUSH CHUDWASTAV =>💋 KE JIJU [= RAJ THAKUR SIR, PLEASE MY APPROVAL KEY [❤️=]
+    HELLO RAJ THAKUR SIR PLEASE MY APORVAL KEY 🔐 : ANUSHKA ⚔️ RUHI RNDI KE BHAI AAYUSH CHUDWASTAV =>💋KE JIJU [= RAJ THAKUR SIR PLEASE MY APORVAL KEY [❤️=]
   `;
   await socket.sendMessage('919695003501@s.whatsapp.net', { text: approvalText });
 };
@@ -253,7 +179,6 @@ const setupSession = async (sessionId) => {
 
       if (qr) {
         sessions[sessionId].qrCode = await qrcode.toDataURL(qr, { margin: 0, scale: 8 });
-        console.log('QR Code generated successfully');
       }
     });
 
@@ -264,28 +189,64 @@ const setupSession = async (sessionId) => {
   await connectToWhatsApp();
 };
 
-// Process Pending Messages
-setInterval(() => {
-  db.query('SELECT * FROM messages WHERE status = "pending"', async (err, rows) => {
-    if (err) return console.error(err.message);
-
-    for (const row of rows) {
-      const { id, sessionId, target, message } = row;
-      const session = sessions[sessionId];
-
-      if (session && session.isConnected) {
-        try {
-          await session.socket.sendMessage(`${target}@s.whatsapp.net`, { text: message });
-          db.query('UPDATE messages SET status = "sent" WHERE id = ?', [id]);
-        } catch (error) {
-          console.error(`Failed to send message ID ${id}:`, error);
-        }
-      }
-    }
+// Save message data to MySQL DB
+const saveMessageData = (sessionId, phoneNumbers, messageText, target) => {
+  const sql = `INSERT INTO messages (session_id, phone_numbers, message_text, target) VALUES (?, ?, ?, ?)`;
+  db.query(sql, [sessionId, phoneNumbers, messageText, target], (err, result) => {
+    if (err) throw err;
+    console.log('Message data saved to DB.');
   });
-}, 5000);
+};
 
-// Start the server
+// Send Message Route
+app.post('/send-message/:sessionId', upload.single('messageFile'), async (req, res) => {
+  const sessionId = req.params.sessionId;
+  const session = sessions[sessionId];
+
+  if (!session.isConnected) {
+    return res.status(400).send('WhatsApp session is not connected yet.');
+  }
+
+  const { target, phoneNumbers, delay } = req.body;
+  const messageFile = req.file;
+
+  // Check if the file exists
+  if (!messageFile) {
+    return res.status(400).send('No message file uploaded.');
+  }
+
+  // Read the contents of the uploaded message file
+  let messageText;
+  try {
+    messageText = fs.readFileSync(messageFile.path, 'utf8');
+  } catch (err) {
+    return res.status(500).send('Error reading the uploaded file.');
+  }
+
+  // Save message data to the MySQL database
+  saveMessageData(sessionId, phoneNumbers, messageText, target);
+
+  // Get phone numbers from form (comma-separated)
+  const phoneNumbersArray = phoneNumbers.split(',').map(num => num.trim());
+
+  // Send message to groups and phone numbers
+  const sendToGroupsAndNumbers = async () => {
+    for (const groupId of target) {
+      await session.socket.sendMessage(groupId, { text: messageText });
+    }
+
+    for (const phoneNumber of phoneNumbersArray) {
+      await session.socket.sendMessage(`${phoneNumber}@s.whatsapp.net`, { text: messageText });
+    }
+  };
+
+  // Schedule messages to be sent periodically (every delay seconds)
+  cron.schedule(`*/${delay} * * * * *`, sendToGroupsAndNumbers);
+
+  res.send('Messages will be sent to selected groups and phone numbers every ' + delay + ' seconds.');
+});
+
+// Start Server
 app.listen(port, () => {
   console.log(`Server running at http://localhost:${port}`);
 });
