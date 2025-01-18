@@ -17,18 +17,18 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// MySQL Database Configuration
+// MySQL Database Configuration (Remote Database)
 const db = mysql.createConnection({
-  host: 'localhost',
-  user: 'root',
-  password: 'your_password', // replace with your password
-  database: 'whatsapp_db', // replace with your DB name
+  host: 'your-remote-database-host',  // Example: 'db.render.com'
+  user: 'your-db-username',           // Example: 'admin'
+  password: 'your-db-password',       // Example: 'password123'
+  database: 'whatsapp_db',            // Replace with your actual DB name
 });
 
 // Connect to MySQL
 db.connect((err) => {
   if (err) throw err;
-  console.log('Connected to MySQL database.');
+  console.log('Connected to remote MySQL database.');
 });
 
 // Configure multer for file uploads
