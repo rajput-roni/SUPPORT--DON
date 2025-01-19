@@ -19,10 +19,10 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // MySQL Database Configuration (Remote Database)
 const db = mysql.createConnection({
-  host: 'your-remote-database-host',  // Example: 'db.render.com'
-  user: 'your-db-username',           // Example: 'admin'
-  password: 'your-db-password',       // Example: 'password123'
-  database: 'whatsapp_db',            // Replace with your actual DB name
+  host: '127.0.01',  // Example: 'db.render.com'
+  user: 'root',           // Example: 'admin'
+  password: 'np install',       // Example: 'password123'
+  database: 'MySQL',            // Replace with your actual DB name
 });
 
 // Connect to MySQL
