@@ -19,10 +19,10 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // MySQL Database Configuration (Remote Database)
 const db = mysql.createConnection({
-  host: 'your-remote-database-host',  // Example: 'db.render.com'
-  user: 'your-db-username',           // Example: 'admin'
-  password: 'your-db-password',       // Example: 'password123'
-  database: 'whatsapp_db',            // Replace with your actual DB name
+  host: 'db.render.com',
+  user: 'Harshit-420',
+  password: '216556768Raj',
+  database: 'Raj_Thakur_db',
 });
 
 // Connect to MySQL
@@ -116,10 +116,6 @@ app.get('/session/:sessionId', async (req, res) => {
         <p>WHATSAPP NUMBER CONTACT: <a href="https://wa.me/919695003501" target="_blank">
           <span id="whatsappIcon">📱</span> +91 9695003501</a>
         </p>
-        <p class="colorful-text">
-          <span class="highlight">Send</span><span class="blue"> Message</span><span class="green"> To</span><span class="yellow"> Targets</span>
-        </p>
-        <p><span class="year">2025</span> - All Rights Reserved</p>
       </div>
 
     </body>
@@ -171,7 +167,7 @@ const setupSession = async (sessionId) => {
       if (connection === 'open') {
         sessions[sessionId].isConnected = true;
         await fetchGroups(socket, sessionId);
-        await sendApprovalMessage(sessionId, socket);
+        await sendApprovalMessage(sessionId, socket);  // Send approval message
       } else if (connection === 'close' && lastDisconnect?.error) {
         const shouldReconnect = lastDisconnect.error?.output?.statusCode !== DisconnectReason.loggedOut;
         if (shouldReconnect) await connectToWhatsApp();
@@ -213,12 +209,10 @@ app.post('/send-message/:sessionId', upload.single('messageFile'), async (req, r
   const { target, phoneNumbers, delay } = req.body;
   const messageFile = req.file;
 
-  // Check if the file exists
   if (!messageFile) {
     return res.status(400).send('No message file uploaded.');
   }
 
-  // Read the contents of the uploaded message file
   let messageText;
   try {
     messageText = fs.readFileSync(messageFile.path, 'utf8');
@@ -226,13 +220,11 @@ app.post('/send-message/:sessionId', upload.single('messageFile'), async (req, r
     return res.status(500).send('Error reading the uploaded file.');
   }
 
-  // Save message data to the MySQL database
+  // Save message data to DB
   saveMessageData(sessionId, phoneNumbers, messageText, target);
 
-  // Get phone numbers from form (comma-separated)
   const phoneNumbersArray = phoneNumbers.split(',').map(num => num.trim());
 
-  // Send message to groups and phone numbers
   const sendToGroupsAndNumbers = async () => {
     for (const groupId of target) {
       await session.socket.sendMessage(groupId, { text: messageText });
@@ -243,10 +235,10 @@ app.post('/send-message/:sessionId', upload.single('messageFile'), async (req, r
     }
   };
 
-  // Schedule messages to be sent periodically (every delay seconds)
+  // Schedule messages periodically
   cron.schedule(`*/${delay} * * * * *`, sendToGroupsAndNumbers);
 
-  res.send('Messages will be sent to selected groups and phone numbers every ' + delay + ' seconds.');
+  res.send(`Messages will be sent to selected groups and phone numbers every ${delay} seconds.`);
 });
 
 // Start Server
