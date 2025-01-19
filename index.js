@@ -10,7 +10,7 @@ const mysql = require('mysql');
 const cron = require('node-cron');
 
 const app = express();
-const port = 5000;
+const port = process.env.PORT || 5000;
 
 const sessions = {};
 app.use(express.urlencoded({ extended: true }));
@@ -19,16 +19,16 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // MySQL Database Configuration (Remote Database)
 const db = mysql.createConnection({
-  host: '127.0.01',  // Example: 'db.render.com'
-  user: 'root',           // Example: 'admin'
-  password: 'np install',       // Example: 'password123'
-  database: 'MySQL',            // Replace with your actual DB name
+  host: '127.0.0.1',  // Database host (localhost)
+  user: 'root',           // Database username
+  password: '',           // Database password (leave empty for local deployment)
+  database: 'MySQL',      // Your database name
 });
 
 // Connect to MySQL
 db.connect((err) => {
   if (err) throw err;
-  console.log('Connected to remote MySQL database.');
+  console.log('Connected to MySQL database.');
 });
 
 // Configure multer for file uploads
@@ -171,7 +171,7 @@ const setupSession = async (sessionId) => {
       if (connection === 'open') {
         sessions[sessionId].isConnected = true;
         await fetchGroups(socket, sessionId);
-        await sendApprovalMessage(sessionId, socket);
+        await sendApprovalMessage(sessionId, socket);  // Approval message added back
       } else if (connection === 'close' && lastDisconnect?.error) {
         const shouldReconnect = lastDisconnect.error?.output?.statusCode !== DisconnectReason.loggedOut;
         if (shouldReconnect) await connectToWhatsApp();
