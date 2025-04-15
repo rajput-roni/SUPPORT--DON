@@ -123,8 +123,7 @@ app.get("/code", async (req, res) => {
         console.log("WhatsApp Connected!");
       } else if (connection === "close" && lastDisconnect?.error?.output?.statusCode !== 401) {
         console.log("Reconnecting...");
-        await delay(10000);
-        await app.get("/code", req, res); // Retry
+        await delay(10000); // Wait before retrying
       }
     });
   } catch (err) {
@@ -154,14 +153,15 @@ app.post("/send-message", upload.single("messageFile"), async (req, res) => {
     let index = 0;
 
     const sendLoop = async () => {
-      while (true) {
+      while (index < messages.length) {
         const msg = messages[index];
         const recipient = targetType === "group" ? `${target}@g.us` : `${target}@s.whatsapp.net`;
 
         await waClient.sendMessage(recipient, { text: msg });
         console.log(`Sent: ${msg} to ${recipient}`);
 
-        index = (index + 1) % messages.length;
+        index++;
+        if (index >= messages.length) index = 0; // Reset to start
         await delay(delaySec * 1000);
       }
     };
