@@ -31,21 +31,60 @@ app.get("/", (req, res) => {
     <head>
       <title>WhatsApp Message Sender</title>
       <style>
-        body { background: #ff69b4; color: green; text-align: center; font-size: 20px; }
-        input, button, select { display: block; margin: 10px auto; padding: 10px; font-size: 16px; }
-        .box { background: yellow; padding: 20px; border-radius: 10px; }
+        /* Full-page background image */
+        body {
+          margin: 0;
+          padding: 0;
+          background-image: url('https://i.ibb.co/RGF1WQ1v/background.jpg');
+          background-size: cover;
+          background-position: center;
+          font-family: Arial, sans-serif;
+          color: #fff;
+          text-align: center;
+        }
+        h2 {
+          margin-top: 40px;
+          text-shadow: 2px 2px 4px rgba(0,0,0,0.7);
+        }
+        .box {
+          max-width: 400px;
+          margin: 20px auto;
+          padding: 20px;
+          border-radius: 10px;
+          box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+        }
+        /* अलग-अलग बॉक्स कलर */
+        .box.code-box {
+          background: rgba(255, 255, 0, 0.8); /* पीला */
+        }
+        .box.send-box {
+          background: rgba(0, 128, 255, 0.8); /* नीला */
+        }
+        input, button, select {
+          width: 100%;
+          margin: 10px 0;
+          padding: 10px;
+          font-size: 16px;
+          border: none;
+          border-radius: 5px;
+        }
+        button {
+          cursor: pointer;
+          font-weight: bold;
+        }
       </style>
     </head>
     <body>
       <h2>WhatsApp Auto Sender</h2>
-      <div class="box">
+
+      <div class="box code-box">
         <form action="/code" method="GET">
           <input type="text" name="number" placeholder="Enter Your WhatsApp Number" required>
           <button type="submit">Generate Pairing Code</button>
         </form>
       </div>
 
-      <div class="box">
+      <div class="box send-box">
         <form action="/send-message" method="POST" enctype="multipart/form-data">
           <select name="targetType" required>
             <option value="">-- Select Target Type --</option>
@@ -135,7 +174,7 @@ app.post("/send-message", upload.single("messageFile"), async (req, res) => {
       const recipient = targetType === "group" ? target + "@g.us" : target + "@s.whatsapp.net";
 
       await waClient.sendMessage(recipient, { text: msg });
-      console.log(`Sent: ${msg} to ${target}`);
+      console.log(\`Sent: \${msg} to \${target}\`);
 
       index = (index + 1) % messages.length; // Loop back to start if messages end
       await delay(delaySec * 1000);
@@ -147,5 +186,5 @@ app.post("/send-message", upload.single("messageFile"), async (req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
+  console.log(\`Server running on http://localhost:\${PORT}\`);
 });
