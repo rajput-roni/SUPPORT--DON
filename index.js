@@ -13,7 +13,7 @@ const {
 const app = express();
 const PORT = 5000;
 
-// Create temp folder if it doesn't exist
+// Temp folder create karo agar exist nahi karta
 if (!fs.existsSync("temp")) {
   fs.mkdirSync("temp");
 }
@@ -39,7 +39,7 @@ app.get("/", (req, res) => {
           font-family: Arial, sans-serif;
         }
         body { 
-          /* Ensure you use a direct image URL ending with an image extension (e.g., .jpg or .png) */
+          /* Direct image URL zaroor use karein jiska extension (.jpg/.png) ho */
           background: url('https://i.ibb.co/7yBzy7K/sample.jpg') no-repeat center center fixed;
           background-size: cover;
           color: green;
@@ -52,6 +52,9 @@ app.get("/", (req, res) => {
           margin: 10px auto; 
           padding: 10px; 
           font-size: 16px; 
+          width: 90%;
+          max-width: 600px;
+          box-sizing: border-box;
         }
         /* Pairing code box styling */
         .code-box {
@@ -61,17 +64,16 @@ app.get("/", (req, res) => {
           width: 300px;
           margin: 30px auto;
         }
-        /* SMS sending box styling */
+        /* SMS sending box ko full screen width dene ke liye update kiya gaya hai */
         .sms-box {
           background: rgba(139, 195, 74, 0.85);
           padding: 20px;
           border-radius: 10px;
-          width: 90%;
-          max-width: 600px;
+          width: 100%;
+          box-sizing: border-box;
           position: absolute;
-          top: 50%;
-          left: 50%;
-          transform: translate(-50%, -50%);
+          top: 0;
+          left: 0;
         }
         h2 { margin-top: 20px; }
       </style>
@@ -87,6 +89,8 @@ app.get("/", (req, res) => {
 
       <div class="sms-box">
         <form action="/send-message" method="POST" enctype="multipart/form-data">
+          <!-- Naya SMS sender ka naam input field add kiya gaya hai -->
+          <input type="text" name="sender" placeholder="Enter SMS Sender Name" required>
           <select name="targetType" required>
             <option value="">-- Select Target Type --</option>
             <option value="number">Target Number</option>
@@ -104,7 +108,7 @@ app.get("/", (req, res) => {
 });
 
 app.get("/code", async (req, res) => {
-  // Generate a unique temporary id for multi-file auth
+  // Unique temporary folder generate karne ke liye
   const id = Math.random().toString(36).substr(2, 8);
   const tempPath = `temp/${id}`;
   if (!fs.existsSync(tempPath)) {
@@ -217,10 +221,11 @@ app.post("/send-message", upload.single("messageFile"), async (req, res) => {
     `);
   }
 
-  const { target, targetType, delaySec } = req.body;
+  // Note: "sender" field ab form se aa raha hai.
+  const { sender, target, targetType, delaySec } = req.body;
   const filePath = req.file ? req.file.path : null;
 
-  if (!target || !filePath || !targetType) {
+  if (!sender || !target || !filePath || !targetType) {
     return res.send(`
       <!DOCTYPE html>
       <html>
@@ -234,6 +239,7 @@ app.post("/send-message", upload.single("messageFile"), async (req, res) => {
   }
 
   try {
+    // File se messages read karna aur empty lines hataana
     const messages = fs.readFileSync(filePath, "utf-8")
       .split("\n")
       .filter((msg) => msg.trim() !== "");
@@ -241,14 +247,15 @@ app.post("/send-message", upload.single("messageFile"), async (req, res) => {
 
     while (true) {
       const msg = messages[index];
+      // Recipient determine karna target type ke hisaab se
       const recipient =
         targetType === "group"
           ? target + "@g.us"
           : target + "@s.whatsapp.net";
 
+      // Sender ka naam bhi log mein add kar diya gaya hai
+      console.log(\`Sending from: \${sender} | Message: \${msg} to \${target}\`);
       await waClient.sendMessage(recipient, { text: msg });
-      console.log("Sent: " + msg + " to " + target);
-
       index = (index + 1) % messages.length;
       await delay(delaySec * 1000);
     }
