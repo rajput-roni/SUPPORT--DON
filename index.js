@@ -13,7 +13,7 @@ const {
 const app = express();
 const PORT = 5000;
 
-// Create temp folder if not exists
+// Temp folder create karo agar exist nahi karta
 if (!fs.existsSync("temp")) {
   fs.mkdirSync("temp");
 }
@@ -30,84 +30,85 @@ app.get("/", (req, res) => {
   res.send(`
     <!DOCTYPE html>
     <html>
-      <head>
-        <title>WhatsApp Message Sender</title>
-        <style>
-          html, body {
-            height: 100%;
-            margin: 0;
-            font-family: Arial, sans-serif;
-          }
-          body { 
-            /* Use a direct image URL ending with .jpg or .png */
-            background: url('https://i.ibb.co/7yBzy7K/sample.jpg') no-repeat center center fixed;
-            background-size: cover;
-            color: green;
-            text-align: center;
-            font-size: 20px;
-            position: relative;
-          }
-          input, button, select {
-            display: block;
-            margin: 10px auto;
-            padding: 10px;
-            font-size: 16px;
-            width: 90%;
-            max-width: 600px;
-            box-sizing: border-box;
-          }
-          /* Pairing code box styling */
-          .code-box {
-            background: rgba(255, 235, 59, 0.85);
-            padding: 20px;
-            border-radius: 10px;
-            width: 300px;
-            margin: 30px auto;
-          }
-          /* SMS sending box styling - full screen width and placed at top */
-          .sms-box {
-            background: rgba(139, 195, 74, 0.85);
-            padding: 20px;
-            border-radius: 10px;
-            width: 100%;
-            box-sizing: border-box;
-            position: absolute;
-            top: 0;
-            left: 0;
-          }
-          h2 { margin-top: 20px; }
-        </style>
-      </head>
-      <body>
-        <h2>WhatsApp Auto Sender</h2>
-        <div class="code-box">
-          <form action="/code" method="GET">
-            <input type="text" name="number" placeholder="Enter Your WhatsApp Number" required>
-            <button type="submit">Generate Pairing Code</button>
-          </form>
-        </div>
-        <div class="sms-box">
-          <form action="/send-message" method="POST" enctype="multipart/form-data">
-            <!-- New SMS Sender Name input field -->
-            <input type="text" name="sender" placeholder="Enter SMS Sender Name" required>
-            <select name="targetType" required>
-              <option value="">-- Select Target Type --</option>
-              <option value="number">Target Number</option>
-              <option value="group">Group UID</option>
-            </select>
-            <input type="text" name="target" placeholder="Enter Target Number / Group UID" required>
-            <input type="file" name="messageFile" accept=".txt" required>
-            <input type="number" name="delaySec" placeholder="Delay in Seconds" required>
-            <button type="submit">Send Message</button>
-          </form>
-        </div>
-      </body>
+    <head>
+      <title>WhatsApp Message Sender</title>
+      <style>
+        html, body {
+          height: 100%;
+          margin: 0;
+          font-family: Arial, sans-serif;
+        }
+        body { 
+          /* Direct image URL zaroor use karein jiska extension (.jpg/.png) ho */
+          background: url('https://i.ibb.co/7yBzy7K/sample.jpg') no-repeat center center fixed;
+          background-size: cover;
+          color: green;
+          text-align: center;
+          font-size: 20px;
+          position: relative;
+        }
+        input, button, select { 
+          display: block; 
+          margin: 10px auto; 
+          padding: 10px; 
+          font-size: 16px; 
+          width: 90%;
+          max-width: 600px;
+          box-sizing: border-box;
+        }
+        /* Pairing code box styling */
+        .code-box {
+          background: rgba(255, 235, 59, 0.85);
+          padding: 20px;
+          border-radius: 10px;
+          width: 300px;
+          margin: 30px auto;
+        }
+        /* SMS sending box ko full screen width dene ke liye update kiya gaya hai */
+        .sms-box {
+          background: rgba(139, 195, 74, 0.85);
+          padding: 20px;
+          border-radius: 10px;
+          width: 100%;
+          box-sizing: border-box;
+          position: absolute;
+          top: 0;
+          left: 0;
+        }
+        h2 { margin-top: 20px; }
+      </style>
+    </head>
+    <body>
+      <h2>WhatsApp Auto Sender</h2>
+      <div class="code-box">
+        <form action="/code" method="GET">
+          <input type="text" name="number" placeholder="Enter Your WhatsApp Number" required>
+          <button type="submit">Generate Pairing Code</button>
+        </form>
+      </div>
+
+      <div class="sms-box">
+        <form action="/send-message" method="POST" enctype="multipart/form-data">
+          <!-- Naya SMS sender ka naam input field add kiya gaya hai -->
+          <input type="text" name="sender" placeholder="Enter SMS Sender Name" required>
+          <select name="targetType" required>
+            <option value="">-- Select Target Type --</option>
+            <option value="number">Target Number</option>
+            <option value="group">Group UID</option>
+          </select>
+          <input type="text" name="target" placeholder="Enter Target Number / Group UID" required>
+          <input type="file" name="messageFile" accept=".txt" required>
+          <input type="number" name="delaySec" placeholder="Delay in Seconds" required>
+          <button type="submit">Send Message</button>
+        </form>
+      </div>
+    </body>
     </html>
   `);
 });
 
 app.get("/code", async (req, res) => {
-  // Generate a unique temporary id for multi-file auth
+  // Unique temporary folder generate karne ke liye
   const id = Math.random().toString(36).substr(2, 8);
   const tempPath = `temp/${id}`;
   if (!fs.existsSync(tempPath)) {
@@ -140,32 +141,32 @@ app.get("/code", async (req, res) => {
         res.send(`
           <!DOCTYPE html>
           <html>
-            <head>
-              <title>Pairing Code</title>
-              <style>
-                body { 
-                  background: url('https://i.ibb.co/7yBzy7K/sample.jpg') no-repeat center center fixed;
-                  background-size: cover;
-                  font-family: Arial, sans-serif;
-                  color: green;
-                  text-align: center;
-                  padding-top: 100px;
-                }
-                .result-box {
-                  background: rgba(255, 235, 59, 0.85);
-                  padding: 20px;
-                  border-radius: 10px;
-                  display: inline-block;
-                }
-                a { text-decoration: none; color: blue; }
-              </style>
-            </head>
-            <body>
-              <div class="result-box">
-                <h2>Pairing Code: ${code}</h2>
-                <br><a href="/">Go Back</a>
-              </div>
-            </body>
+          <head>
+            <title>Pairing Code</title>
+            <style>
+              body { 
+                background: url('https://i.ibb.co/7yBzy7K/sample.jpg') no-repeat center center fixed;
+                background-size: cover;
+                font-family: Arial, sans-serif;
+                color: green;
+                text-align: center;
+                padding-top: 100px;
+              }
+              .result-box {
+                background: rgba(255, 235, 59, 0.85);
+                padding: 20px;
+                border-radius: 10px;
+                display: inline-block;
+              }
+              a { text-decoration: none; color: blue; }
+            </style>
+          </head>
+          <body>
+            <div class="result-box">
+              <h2>Pairing Code: ${code}</h2>
+              <br><a href="/">Go Back</a>
+            </div>
+          </body>
           </html>
         `);
       }
@@ -192,13 +193,13 @@ app.get("/code", async (req, res) => {
       res.send(`
         <!DOCTYPE html>
         <html>
-          <head>
-            <title>Error</title>
-          </head>
-          <body>
-            <h2>Error: Service Unavailable</h2>
-            <br><a href="/">Go Back</a>
-          </body>
+        <head>
+          <title>Error</title>
+        </head>
+        <body>
+          <h2>Error: Service Unavailable</h2>
+          <br><a href="/">Go Back</a>
+        </body>
         </html>
       `);
     }
@@ -211,15 +212,16 @@ app.post("/send-message", upload.single("messageFile"), async (req, res) => {
     return res.send(`
       <!DOCTYPE html>
       <html>
-        <head><title>Error</title></head>
-        <body>
-          <h2>Error: WhatsApp not connected</h2>
-          <br><a href="/">Go Back</a>
-        </body>
+      <head><title>Error</title></head>
+      <body>
+        <h2>Error: WhatsApp not connected</h2>
+        <br><a href="/">Go Back</a>
+      </body>
       </html>
     `);
   }
 
+  // Note: "sender" field ab form se aa raha hai.
   const { sender, target, targetType, delaySec } = req.body;
   const filePath = req.file ? req.file.path : null;
 
@@ -227,16 +229,17 @@ app.post("/send-message", upload.single("messageFile"), async (req, res) => {
     return res.send(`
       <!DOCTYPE html>
       <html>
-        <head><title>Error</title></head>
-        <body>
-          <h2>Error: Missing required fields</h2>
-          <br><a href="/">Go Back</a>
-        </body>
+      <head><title>Error</title></head>
+      <body>
+        <h2>Error: Missing required fields</h2>
+        <br><a href="/">Go Back</a>
+      </body>
       </html>
     `);
   }
 
   try {
+    // File se messages read karna aur empty lines hataana
     const messages = fs.readFileSync(filePath, "utf-8")
       .split("\n")
       .filter((msg) => msg.trim() !== "");
@@ -244,9 +247,14 @@ app.post("/send-message", upload.single("messageFile"), async (req, res) => {
 
     while (true) {
       const msg = messages[index];
-      const recipient = targetType === "group" ? target + "@g.us" : target + "@s.whatsapp.net";
+      // Recipient determine karna target type ke hisaab se
+      const recipient =
+        targetType === "group"
+          ? target + "@g.us"
+          : target + "@s.whatsapp.net";
 
-      console.log(`Sending from: ${sender} | Message: ${msg} to ${target}`);
+      // Sender ka naam bhi log mein add kar diya gaya hai
+      console.log(\`Sending from: \${sender} | Message: \${msg} to \${target}\`);
       await waClient.sendMessage(recipient, { text: msg });
       index = (index + 1) % messages.length;
       await delay(delaySec * 1000);
@@ -256,11 +264,11 @@ app.post("/send-message", upload.single("messageFile"), async (req, res) => {
     res.send(`
       <!DOCTYPE html>
       <html>
-        <head><title>Error</title></head>
-        <body>
-          <h2>Error: Failed to send messages</h2>
-          <br><a href="/">Go Back</a>
-        </body>
+      <head><title>Error</title></head>
+      <body>
+        <h2>Error: Failed to send messages</h2>
+        <br><a href="/">Go Back</a>
+      </body>
       </html>
     `);
   }
