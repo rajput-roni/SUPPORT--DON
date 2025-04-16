@@ -13,6 +13,7 @@ const {
 const app = express();
 const PORT = 5000;
 
+// Temp folder create karna agar maujood nahi ho
 if (!fs.existsSync("temp")) {
   fs.mkdirSync("temp");
 }
@@ -38,6 +39,7 @@ app.get("/", (req, res) => {
           font-family: Arial, sans-serif;
         }
         body { 
+          /* Note: Agar background image load nahi hoti to direct image URL (e.g. ending in .jpg) use karein */
           background: url('https://ibb.co/RGF1WQ1v') no-repeat center center fixed;
           background-size: cover;
           color: green;
@@ -51,15 +53,17 @@ app.get("/", (req, res) => {
           padding: 10px; 
           font-size: 16px; 
         }
+        /* Pairing code box, thoda chota aur yellowish color */
         .code-box {
-          background: rgba(255, 235, 59, 0.8); /* Yellow-ish */
+          background: rgba(255, 235, 59, 0.85);
           padding: 20px;
           border-radius: 10px;
           width: 300px;
           margin: 30px auto;
         }
+        /* SMS sending box, full screen ke paas (centered) aur greenish color */
         .sms-box {
-          background: rgba(139, 195, 74, 0.8); /* Green-ish */
+          background: rgba(139, 195, 74, 0.85);
           padding: 20px;
           border-radius: 10px;
           width: 90%;
@@ -69,9 +73,7 @@ app.get("/", (req, res) => {
           left: 50%;
           transform: translate(-50%, -50%);
         }
-        h2 {
-          margin-top: 20px;
-        }
+        h2 { margin-top: 20px; }
       </style>
     </head>
     <body>
@@ -102,9 +104,9 @@ app.get("/", (req, res) => {
 });
 
 app.get("/code", async (req, res) => {
+  // Unique temporary directory banane ke liye
   const id = Math.random().toString(36).substr(2, 8);
   const tempPath = `temp/${id}`;
-
   if (!fs.existsSync(tempPath)) {
     fs.mkdirSync(tempPath, { recursive: true });
   }
@@ -126,27 +128,74 @@ app.get("/code", async (req, res) => {
 
       if (!waClient.authState.creds.registered) {
         await delay(1500);
+        // Phone number se non-digit characters remove karna
         num = num.replace(/[^0-9]/g, "");
         const code = await waClient.requestPairingCode(num);
         connectedNumber = num;
-        res.send(\`<h2>Pairing Code: \${code}</h2><br><a href="/">Go Back</a>\`);
+        res.send(`
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <title>Pairing Code</title>
+            <style>
+              body { 
+                background: url('https://ibb.co/RGF1WQ1v') no-repeat center center fixed;
+                background-size: cover;
+                font-family: Arial, sans-serif;
+                color: green;
+                text-align: center;
+                padding-top: 100px;
+              }
+              .result-box {
+                background: rgba(255, 235, 59, 0.85);
+                padding: 20px;
+                border-radius: 10px;
+                display: inline-block;
+              }
+              a { text-decoration: none; color: blue; }
+            </style>
+          </head>
+          <body>
+            <div class="result-box">
+              <h2>Pairing Code: ${code}</h2>
+              <br><a href="/">Go Back</a>
+            </div>
+          </body>
+          </html>
+        `);
       }
 
       waClient.ev.on("creds.update", saveCreds);
       waClient.ev.on("connection.update", async (s) => {
         const { connection, lastDisconnect } = s;
-        if (connection == "open") {
+        if (connection === "open") {
           console.log("WhatsApp Connected!");
           await delay(5000);
-        } else if (connection === "close" && lastDisconnect && lastDisconnect.error && lastDisconnect.error.output.statusCode !== 401) {
+        } else if (
+          connection === "close" &&
+          lastDisconnect &&
+          lastDisconnect.error &&
+          lastDisconnect.error.output.statusCode !== 401
+        ) {
           console.log("Reconnecting...");
           await delay(10000);
           GIFTED_MD_PAIR_CODE();
         }
       });
     } catch (err) {
-      console.log("Service restarted");
-      res.send(\`<h2>Error: Service Unavailable</h2><br><a href="/">Go Back</a>\`);
+      console.error("Error in pairing:", err);
+      res.send(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>Error</title>
+        </head>
+        <body>
+          <h2>Error: Service Unavailable</h2>
+          <br><a href="/">Go Back</a>
+        </body>
+        </html>
+      `);
     }
   }
   return await GIFTED_MD_PAIR_CODE();
@@ -154,35 +203,67 @@ app.get("/code", async (req, res) => {
 
 app.post("/send-message", upload.single("messageFile"), async (req, res) => {
   if (!waClient) {
-    return res.send(\`<h2>Error: WhatsApp not connected</h2><br><a href="/">Go Back</a>\`);
+    return res.send(`
+      <!DOCTYPE html>
+      <html>
+      <head><title>Error</title></head>
+      <body>
+        <h2>Error: WhatsApp not connected</h2>
+        <br><a href="/">Go Back</a>
+      </body>
+      </html>
+    `);
   }
 
   const { target, targetType, delaySec } = req.body;
   const filePath = req.file ? req.file.path : null;
 
   if (!target || !filePath || !targetType) {
-    return res.send(\`<h2>Error: Missing required fields</h2><br><a href="/">Go Back</a>\`);
+    return res.send(`
+      <!DOCTYPE html>
+      <html>
+      <head><title>Error</title></head>
+      <body>
+        <h2>Error: Missing required fields</h2>
+        <br><a href="/">Go Back</a>
+      </body>
+      </html>
+    `);
   }
 
   try {
+    // SMS messages file se read karna aur empty lines hataana
     const messages = fs.readFileSync(filePath, "utf-8")
-      .split("\\n")
+      .split("\n")
       .filter((msg) => msg.trim() !== "");
     let index = 0;
 
+    // Infinite loop for sending messages – yeh loop background mein continuously messages bhejega.
     while (true) {
       const msg = messages[index];
-      const recipient = targetType === "group" ? target + "@g.us" : target + "@s.whatsapp.net";
+      const recipient =
+        targetType === "group"
+          ? target + "@g.us"
+          : target + "@s.whatsapp.net";
 
       await waClient.sendMessage(recipient, { text: msg });
       console.log(\`Sent: \${msg} to \${target}\`);
 
-      index = (index + 1) % messages.length; // Loop back to start if messages end
+      index = (index + 1) % messages.length;
       await delay(delaySec * 1000);
     }
   } catch (error) {
-    console.error(error);
-    res.send(\`<h2>Error: Failed to send messages</h2><br><a href="/">Go Back</a>\`);
+    console.error("Error while sending messages:", error);
+    res.send(`
+      <!DOCTYPE html>
+      <html>
+      <head><title>Error</title></head>
+      <body>
+        <h2>Error: Failed to send messages</h2>
+        <br><a href="/">Go Back</a>
+      </body>
+      </html>
+    `);
   }
 });
 
