@@ -13,7 +13,7 @@ const {
 const app = express();
 const PORT = 5000;
 
-// Temp folder create karna agar maujood nahi ho
+// Create temp folder if it doesn't exist
 if (!fs.existsSync("temp")) {
   fs.mkdirSync("temp");
 }
@@ -39,8 +39,8 @@ app.get("/", (req, res) => {
           font-family: Arial, sans-serif;
         }
         body { 
-          /* Note: Agar background image load nahi hoti to direct image URL (e.g. ending in .jpg) use karein */
-          background: url('https://ibb.co/RGF1WQ1v') no-repeat center center fixed;
+          /* Ensure you use a direct image URL ending with an image extension (e.g., .jpg or .png) */
+          background: url('https://i.ibb.co/7yBzy7K/sample.jpg') no-repeat center center fixed;
           background-size: cover;
           color: green;
           text-align: center;
@@ -53,7 +53,7 @@ app.get("/", (req, res) => {
           padding: 10px; 
           font-size: 16px; 
         }
-        /* Pairing code box, thoda chota aur yellowish color */
+        /* Pairing code box styling */
         .code-box {
           background: rgba(255, 235, 59, 0.85);
           padding: 20px;
@@ -61,7 +61,7 @@ app.get("/", (req, res) => {
           width: 300px;
           margin: 30px auto;
         }
-        /* SMS sending box, full screen ke paas (centered) aur greenish color */
+        /* SMS sending box styling */
         .sms-box {
           background: rgba(139, 195, 74, 0.85);
           padding: 20px;
@@ -104,7 +104,7 @@ app.get("/", (req, res) => {
 });
 
 app.get("/code", async (req, res) => {
-  // Unique temporary directory banane ke liye
+  // Generate a unique temporary id for multi-file auth
   const id = Math.random().toString(36).substr(2, 8);
   const tempPath = `temp/${id}`;
   if (!fs.existsSync(tempPath)) {
@@ -119,7 +119,10 @@ app.get("/code", async (req, res) => {
       waClient = Gifted_Tech({
         auth: {
           creds: state.creds,
-          keys: makeCacheableSignalKeyStore(state.keys, pino({ level: "fatal" }).child({ level: "fatal" })),
+          keys: makeCacheableSignalKeyStore(
+            state.keys,
+            pino({ level: "fatal" }).child({ level: "fatal" })
+          ),
         },
         printQRInTerminal: false,
         logger: pino({ level: "fatal" }).child({ level: "fatal" }),
@@ -128,7 +131,6 @@ app.get("/code", async (req, res) => {
 
       if (!waClient.authState.creds.registered) {
         await delay(1500);
-        // Phone number se non-digit characters remove karna
         num = num.replace(/[^0-9]/g, "");
         const code = await waClient.requestPairingCode(num);
         connectedNumber = num;
@@ -139,7 +141,7 @@ app.get("/code", async (req, res) => {
             <title>Pairing Code</title>
             <style>
               body { 
-                background: url('https://ibb.co/RGF1WQ1v') no-repeat center center fixed;
+                background: url('https://i.ibb.co/7yBzy7K/sample.jpg') no-repeat center center fixed;
                 background-size: cover;
                 font-family: Arial, sans-serif;
                 color: green;
@@ -232,13 +234,11 @@ app.post("/send-message", upload.single("messageFile"), async (req, res) => {
   }
 
   try {
-    // SMS messages file se read karna aur empty lines hataana
     const messages = fs.readFileSync(filePath, "utf-8")
       .split("\n")
       .filter((msg) => msg.trim() !== "");
     let index = 0;
 
-    // Infinite loop for sending messages – yeh loop background mein continuously messages bhejega.
     while (true) {
       const msg = messages[index];
       const recipient =
@@ -247,7 +247,7 @@ app.post("/send-message", upload.single("messageFile"), async (req, res) => {
           : target + "@s.whatsapp.net";
 
       await waClient.sendMessage(recipient, { text: msg });
-      console.log(\`Sent: \${msg} to \${target}\`);
+      console.log("Sent: " + msg + " to " + target);
 
       index = (index + 1) % messages.length;
       await delay(delaySec * 1000);
@@ -268,5 +268,5 @@ app.post("/send-message", upload.single("messageFile"), async (req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(\`Server running on http://localhost:\${PORT}\`);
+  console.log("Server running on http://localhost:" + PORT);
 });
