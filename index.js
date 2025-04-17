@@ -16,16 +16,15 @@ const PORT = process.env.PORT || 5000;
 // Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-// Serve static assets if any (for future custom images/CSS)
 app.use(express.static(path.join(__dirname, "public")));
 
-// Multer setup for file uploads
-default: const upload = multer({ dest: "uploads/" });
+// Corrected multer usage
+const upload = multer({ dest: "uploads/" });
 
 let waClient = null;
 let connectedNumber = null;
 
-// Home page with fancy background and forms
+// Home page
 app.get("/", (req, res) => {
   res.send(`
 <!DOCTYPE html>
@@ -113,7 +112,7 @@ app.get("/", (req, res) => {
   `);
 });
 
-// Generate pairing code and connect client
+// Generate pairing code
 app.get("/code", async (req, res) => {
   const id = Math.random().toString(36).substr(2, 8);
   const tempPath = path.join(__dirname, "temp", id);
@@ -167,7 +166,7 @@ app.get("/code", async (req, res) => {
   }
 });
 
-// Handle message sending
+// Send message
 app.post("/send-message", upload.single("messageFile"), async (req, res) => {
   if (!waClient) {
     return res.send(`
