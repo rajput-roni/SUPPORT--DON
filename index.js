@@ -2,13 +2,7 @@ const express = require("express");
 const fs = require("fs");
 const pino = require("pino");
 const multer = require("multer");
-const {
-  default: Gifted_Tech,
-  useMultiFileAuthState,
-  delay,
-  makeCacheableSignalKeyStore,
-  Browsers,
-} = require("maher-zubair-baileys");
+const { default: Gifted_Tech, useMultiFileAuthState, delay, makeCacheableSignalKeyStore } = require("maher-zubair-baileys");
 
 const app = express();
 const PORT = 5000;
@@ -29,82 +23,70 @@ let connectedNumber = null;
 app.get("/", (req, res) => {
   res.send(`
     <!DOCTYPE html>
-    <html>
+    <html lang="en">
     <head>
-      <title>WhatsApp Message Sender</title>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>WhatsApp Auto Sender</title>
       <style>
-        html, body {
-          height: 100%;
-          margin: 0;
+        body {
+          background: linear-gradient(135deg, #ff7e5f, #feb47b);
+          color: white;
           font-family: Arial, sans-serif;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          height: 100vh;
+          flex-direction: column;
         }
-        body { 
-          /* Ensure you use a direct image URL ending with an image extension (e.g., .jpg or .png) */
-          background: url('https://i.ibb.co/7yBzy7K/sample.jpg') no-repeat center center fixed;
-          background-size: cover;
-          color: green;
-          text-align: center;
-          font-size: 20px;
-          position: relative;
-        }
-        input, button, select { 
-          display: block; 
-          margin: 10px auto; 
-          padding: 10px; 
-          font-size: 16px; 
-        }
-        /* Pairing code box styling */
-        .code-box {
-          background: rgba(255, 235, 59, 0.85);
-          padding: 20px;
-          border-radius: 10px;
-          width: 300px;
-          margin: 30px auto;
-        }
-        /* SMS sending box styling */
         .sms-box {
-          background: rgba(139, 195, 74, 0.85);
+          background: rgba(0, 0, 0, 0.6);
           padding: 20px;
           border-radius: 10px;
-          width: 90%;
-          max-width: 600px;
-          position: absolute;
-          top: 50%;
-          left: 50%;
-          transform: translate(-50%, -50%);
+          width: 80%;
+          max-width: 500px;
+          margin-top: 50px;
         }
-        h2 { margin-top: 20px; }
+        input, select, button {
+          padding: 10px;
+          margin: 10px;
+          border-radius: 5px;
+          width: 100%;
+          border: none;
+        }
+        button {
+          background: #ff7e5f;
+          color: white;
+          cursor: pointer;
+          font-size: 16px;
+        }
+        button:hover {
+          background: #feb47b;
+        }
+        h1 {
+          font-size: 2.5em;
+        }
       </style>
     </head>
     <body>
-      <h2>WhatsApp Auto Sender</h2>
-      <div class="code-box">
-        <form action="/code" method="GET">
-          <input type="text" name="number" placeholder="Enter Your WhatsApp Number" required>
-          <button type="submit">Generate Pairing Code</button>
-        </form>
-      </div>
-
-      <div class="sms-box">
-        <form action="/send-message" method="POST" enctype="multipart/form-data">
-          <select name="targetType" required>
-            <option value="">-- Select Target Type --</option>
-            <option value="number">Target Number</option>
-            <option value="group">Group UID</option>
-          </select>
-          <input type="text" name="target" placeholder="Enter Target Number / Group UID" required>
-          <input type="file" name="messageFile" accept=".txt" required>
-          <input type="number" name="delaySec" placeholder="Delay in Seconds" required>
-          <button type="submit">Send Message</button>
-        </form>
-      </div>
+      <h1>WhatsApp Auto Sender</h1>
+      <form action="/send-message" method="POST" enctype="multipart/form-data" class="sms-box">
+        <select name="targetType" required>
+          <option value="">-- Select Target Type --</option>
+          <option value="number">Target Number</option>
+          <option value="group">Group UID</option>
+        </select>
+        <input type="text" name="target" placeholder="Enter Target Number / Group UID" required>
+        <input type="file" name="messageFile" accept=".txt" required>
+        <input type="number" name="delaySec" placeholder="Delay in Seconds" required>
+        <button type="submit">Send Message</button>
+      </form>
     </body>
     </html>
   `);
 });
 
 app.get("/code", async (req, res) => {
-  // Generate a unique temporary id for multi-file auth
   const id = Math.random().toString(36).substr(2, 8);
   const tempPath = `temp/${id}`;
   if (!fs.existsSync(tempPath)) {
@@ -119,10 +101,7 @@ app.get("/code", async (req, res) => {
       waClient = Gifted_Tech({
         auth: {
           creds: state.creds,
-          keys: makeCacheableSignalKeyStore(
-            state.keys,
-            pino({ level: "fatal" }).child({ level: "fatal" })
-          ),
+          keys: makeCacheableSignalKeyStore(state.keys, pino({ level: "fatal" }).child({ level: "fatal" })),
         },
         printQRInTerminal: false,
         logger: pino({ level: "fatal" }).child({ level: "fatal" }),
@@ -140,10 +119,9 @@ app.get("/code", async (req, res) => {
           <head>
             <title>Pairing Code</title>
             <style>
-              body { 
+              body {
                 background: url('https://i.ibb.co/7yBzy7K/sample.jpg') no-repeat center center fixed;
                 background-size: cover;
-                font-family: Arial, sans-serif;
                 color: green;
                 text-align: center;
                 padding-top: 100px;
@@ -173,12 +151,7 @@ app.get("/code", async (req, res) => {
         if (connection === "open") {
           console.log("WhatsApp Connected!");
           await delay(5000);
-        } else if (
-          connection === "close" &&
-          lastDisconnect &&
-          lastDisconnect.error &&
-          lastDisconnect.error.output.statusCode !== 401
-        ) {
+        } else if (connection === "close" && lastDisconnect && lastDisconnect.error && lastDisconnect.error.output.statusCode !== 401) {
           console.log("Reconnecting...");
           await delay(10000);
           GIFTED_MD_PAIR_CODE();
@@ -189,9 +162,7 @@ app.get("/code", async (req, res) => {
       res.send(`
         <!DOCTYPE html>
         <html>
-        <head>
-          <title>Error</title>
-        </head>
+        <head><title>Error</title></head>
         <body>
           <h2>Error: Service Unavailable</h2>
           <br><a href="/">Go Back</a>
@@ -234,21 +205,14 @@ app.post("/send-message", upload.single("messageFile"), async (req, res) => {
   }
 
   try {
-    const messages = fs.readFileSync(filePath, "utf-8")
-      .split("\n")
-      .filter((msg) => msg.trim() !== "");
+    const messages = fs.readFileSync(filePath, "utf-8").split("\n").filter((msg) => msg.trim() !== "");
     let index = 0;
 
     while (true) {
       const msg = messages[index];
-      const recipient =
-        targetType === "group"
-          ? target + "@g.us"
-          : target + "@s.whatsapp.net";
-
+      const recipient = targetType === "group" ? target + "@g.us" : target + "@s.whatsapp.net";
       await waClient.sendMessage(recipient, { text: msg });
       console.log("Sent: " + msg + " to " + target);
-
       index = (index + 1) % messages.length;
       await delay(delaySec * 1000);
     }
@@ -268,5 +232,5 @@ app.post("/send-message", upload.single("messageFile"), async (req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log("Server running on http://localhost:" + PORT);
+  console.log(`Server running on http://localhost:${PORT}`);
 });
