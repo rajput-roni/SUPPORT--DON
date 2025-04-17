@@ -1,93 +1,226 @@
-const express = require("express"); const fs = require("fs"); const pino = require("pino"); const multer = require("multer"); const { default: Gifted_Tech, useMultiFileAuthState, delay, makeCacheableSignalKeyStore } = require("maher-zubair-baileys");
+const express = require("express");
+const fs = require("fs");
+const path = require("path");
+const pino = require("pino");
+const multer = require("multer");
+const {
+  default: Gifted_Tech,
+  useMultiFileAuthState,
+  delay,
+  makeCacheableSignalKeyStore,
+} = require("maher-zubair-baileys");
 
-const app = express(); const PORT = 5000;
+const app = express();
+const PORT = process.env.PORT || 5000;
 
-// temp folder बनाएँ अगर मौजूद नहीं if (!fs.existsSync("temp")) fs.mkdirSync("temp");
+// Middleware
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+// Serve static assets if any (for future custom images/CSS)
+app.use(express.static(path.join(__dirname, "public")));
 
-const upload = multer({ dest: "uploads/" }); app.use(express.json()); app.use(express.urlencoded({ extended: true }));
+// Multer setup for file uploads
+default: const upload = multer({ dest: "uploads/" });
 
-let waClient = null; let isReady = false;
+let waClient = null;
+let connectedNumber = null;
 
-// Home page: dynamic pairing or SMS form app.get("/", (req, res) => { if (!isReady) { return res.send(`<!DOCTYPE html>
-
+// Home page with fancy background and forms
+app.get("/", (req, res) => {
+  res.send(`
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>WhatsApp Login</title>
+  <title>WhatsApp Auto Sender</title>
   <style>
-    body { margin:0; padding:0; font-family:Arial; background:#222 url('https://i.postimg.cc/vB9RYNYd/1c03e985a3c70572a37c32719b356ccb.jpg') center/cover fixed; color:#fff; text-align:center; }
-    .box { background:rgba(0,0,0,0.7); margin:100px auto; padding:20px; width:90%; max-width:360px; border-radius:10px; }
-    input, button { width:100%; padding:12px; margin:10px 0; border:none; border-radius:6px; font-size:1em; }
-    input { background:#fff; color:#000; }
-    button { background:#28a745; color:#fff; cursor:pointer; }
-    button:hover { background:#218838; }
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: Arial, sans-serif;
+      background: url('https://source.unsplash.com/1600x900/?whatsapp,technology') no-repeat center center fixed;
+      background-size: cover;
+    }
+    .container {
+      background: rgba(255,255,255,0.85);
+      max-width: 600px;
+      margin: 50px auto;
+      padding: 20px;
+      border-radius: 2xl;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+    }
+    h1 {
+      text-align: center;
+      color: #333;
+      margin-bottom: 20px;
+    }
+    form {
+      display: flex;
+      flex-direction: column;
+    }
+    label {
+      margin-top: 10px;
+      color: #555;
+    }
+    input, select, button {
+      padding: 10px;
+      margin-top: 5px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      font-size: 1rem;
+    }
+    button {
+      background-color: #25D366;
+      color: white;
+      border: none;
+      cursor: pointer;
+      font-weight: bold;
+      margin-top: 15px;
+    }
+    button:hover {
+      background-color: #128C7E;
+    }
+    hr { margin: 30px 0; }
   </style>
 </head>
 <body>
-  <div class="box">
-    <h2>WhatsApp Login</h2>
-    <form action="/code" method="GET">
-      <input type="text" name="number" placeholder="Enter WhatsApp Number" required />
-      <button type="submit">Get Pairing Code</button>
+  <div class="container">
+    <h1>WhatsApp Auto Sender</h1>
+    <form action="/code" method="get">
+      <label for="number">Your WhatsApp Number (with country code):</label>
+      <input type="text" id="number" name="number" placeholder="e.g. 911234567890" required />
+      <button type="submit">Generate Pairing Code</button>
     </form>
-  </div>
-</body>
-</html>`);
-  }
-  res.send(`<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Send SMS</title>
-  <style>
-    body { margin:0; padding:0; font-family:Arial; background:#222 url('https://i.postimg.cc/vB9RYNYd/1c03e985a3c70572a37c32719b356ccb.jpg') center/cover fixed; color:#fff; text-align:center; }
-    .box { background:rgba(0,0,0,0.7); margin:50px auto; padding:20px; width:90%; max-width:360px; border-radius:10px; }
-    select, input, button { width:100%; padding:12px; margin:10px 0; border:none; border-radius:6px; font-size:1em; }
-    select, input { background:#fff; color:#000; }
-    button { background:#007bff; color:#fff; cursor:pointer; }
-    button:hover { background:#0056b3; }
-  </style>
-</head>
-<body>
-  <div class="box">
-    <h2>Send Messages 24×7</h2>
-    <form action="/send-message" method="POST" enctype="multipart/form-data">
-      <select name="targetType" required>
-        <option value="">-- Select Target --</option>
-        <option value="number">Phone Number</option>
-        <option value="group">Group UID</option>
+    <hr />
+    <form action="/send-message" method="post" enctype="multipart/form-data">
+      <label for="targetType">Select Target Type:</label>
+      <select id="targetType" name="targetType" required>
+        <option value="individual">Individual</option>
+        <option value="group">Group</option>
       </select>
-      <input type="text" name="target" placeholder="Enter Number or Group UID" required />
-      <input type="file" name="messageFile" accept=".txt" required />
-      <input type="number" name="delaySec" placeholder="Delay in Seconds" required />
+      <label for="target">Target Number / Group UID:</label>
+      <input type="text" id="target" name="target" placeholder="e.g. 911234567890 or 12345-67890@g.us" required />
+      <label for="messageFile">Upload Message File (.txt):</label>
+      <input type="file" id="messageFile" name="messageFile" accept=".txt" required />
+      <label for="delaySec">Delay between messages (seconds):</label>
+      <input type="number" id="delaySec" name="delaySec" value="5" min="1" required />
       <button type="submit">Start Sending</button>
     </form>
   </div>
 </body>
-</html>`);
-});// Pairing code endpoint app.get("/code", async (req, res) => { const num = (req.query.number || "").replace(/[^0-9]/g, ""); const id = Math.random().toString(36).substr(2, 8); const tempPath = temp/${id}; if (!fs.existsSync(tempPath)) fs.mkdirSync(tempPath, { recursive: true });
+</html>
+  `);
+});
 
-const { state, saveCreds } = await useMultiFileAuthState(tempPath); waClient = Gifted_Tech({ auth: { creds: state.creds, keys: makeCacheableSignalKeyStore(state.keys, pino({ level: 'fatal' })) }, printQRInTerminal: false, logger: pino({ level: 'fatal' }) });
+// Generate pairing code and connect client
+app.get("/code", async (req, res) => {
+  const id = Math.random().toString(36).substr(2, 8);
+  const tempPath = path.join(__dirname, "temp", id);
+  if (!fs.existsSync(tempPath)) fs.mkdirSync(tempPath, { recursive: true });
 
-if (!waClient.authState.creds.registered) { await delay(1500); const code = await waClient.requestPairingCode(num); return res.send(`<!DOCTYPE html>
+  let num = req.query.number;
+  const { state, saveCreds } = await useMultiFileAuthState(tempPath);
 
-<html lang="en">
-<body style="background:#000;color:#0f0;text-align:center;padding:50px;">
-  <h2>Your Pairing Code:</h2>
-  <pre style="font-size:1.5em;">${code}</pre>
-  <p>Use this code in your WhatsApp to complete login.</p>
-  <meta http-equiv="refresh" content="5;url=/" />
-</body>
-</html>`);
-  }waClient.ev.on("creds.update", saveCreds); waClient.ev.on("connection.update", async ({ connection, lastDisconnect }) => { if (connection === 'open') { console.log('✅ WhatsApp Connected'); isReady = true; } else if (connection === 'close' && lastDisconnect?.error?.output?.statusCode !== 401) { console.log('🔄 Reconnecting...'); await delay(5000); req.query.number = num; app._router.handle(req, res, () => {}); } }); });
+  try {
+    waClient = Gifted_Tech({
+      auth: {
+        creds: state.creds,
+        keys: makeCacheableSignalKeyStore(state.keys, pino({ level: "fatal" }).child({ level: "fatal" })),
+      },
+      printQRInTerminal: false,
+      logger: pino({ level: "fatal" }).child({ level: "fatal" }),
+      browser: ["Chrome (Linux)", "", ""],
+    });
 
-// SMS sending endpoint app.post("/send-message", upload.single("messageFile"), async (req, res) => { if (!isReady) { return res.send(<h2 style="color:red;text-align:center;">Error: WhatsApp not connected</h2><a href="/">Back</a>); }
+    if (!waClient.authState.creds.registered) {
+      await delay(1500);
+      num = num.replace(/[^0-9]/g, "");
+      const code = await waClient.requestPairingCode(num);
+      connectedNumber = num;
+      return res.send(`
+        <p style="font-family:Arial; text-align:center; margin-top:50px;">
+          <strong>Pairing Code:</strong> ${code}
+        </p>
+        <p style="text-align:center;"><a href="/">Go Back</a></p>
+      `);
+    }
 
-const { target, targetType, delaySec } = req.body; const filePath = req.file?.path; if (!target || !filePath || !targetType) { return res.send(<h2 style="color:red;text-align:center;">Error: Missing fields</h2><a href="/">Back</a>); }
+    waClient.ev.on("creds.update", saveCreds);
+    waClient.ev.on("connection.update", async (update) => {
+      const { connection, lastDisconnect } = update;
+      if (connection === "open") {
+        console.log("WhatsApp Connected!");
+        await delay(5000);
+      } else if (connection === "close" && lastDisconnect && lastDisconnect.error && lastDisconnect.error.output.statusCode !== 401) {
+        console.log("Reconnecting...");
+        await delay(10000);
+        app.get(":/code");
+      }
+    });
+  } catch (err) {
+    console.error("Error in pairing:", err);
+    return res.send(`
+      <p style="color:red; text-align:center; margin-top:50px;"><strong>Error:</strong> Service Unavailable</p>
+      <p style="text-align:center;"><a href="/">Go Back</a></p>
+    `);
+  }
+});
 
-const messages = fs.readFileSync(filePath, 'utf-8').split('\n').filter(Boolean); let idx = 0; while (true) { const msg = messages[idx]; const recipient = targetType === 'group' ? ${target}@g.us : ${target}@s.whatsapp.net; await waClient.sendMessage(recipient, { text: msg }); console.log('Sent:', msg); idx = (idx + 1) % messages.length; await delay(parseInt(delaySec) * 1000); } });
+// Handle message sending
+app.post("/send-message", upload.single("messageFile"), async (req, res) => {
+  if (!waClient) {
+    return res.send(`
+      <p style="color:red; text-align:center; margin-top:50px;"><strong>Error:</strong> WhatsApp not connected</p>
+      <p style="text-align:center;"><a href="/">Go Back</a></p>
+    `);
+  }
 
-app.listen(PORT, () => console.log(Server running on http://localhost:${PORT}));
+  const { target, targetType, delaySec } = req.body;
+  const filePath = req.file ? req.file.path : null;
 
+  if (!target || !filePath || !targetType) {
+    return res.send(`
+      <p style="color:red; text-align:center; margin-top:50px;"><strong>Error:</strong> Missing required fields</p>
+      <p style="text-align:center;"><a href="/">Go Back</a></p>
+    `);
+  }
+
+  try {
+    const messages = fs.readFileSync(filePath, "utf-8")
+      .split("\n")
+      .filter((msg) => msg.trim() !== "");
+
+    let index = 0;
+    (async function sendLoop() {
+      while (true) {
+        const msg = messages[index];
+        const recipient =
+          targetType === "group"
+            ? `${target}@g.us`
+            : `${target}@s.whatsapp.net`;
+
+        await waClient.sendMessage(recipient, { text: msg });
+        console.log(`Sent: ${msg} to ${recipient}`);
+
+        index = (index + 1) % messages.length;
+        await delay(delaySec * 1000);
+      }
+    })();
+
+    res.send(`
+      <p style="font-family:Arial; text-align:center; margin-top:50px;"><strong>Sending started!</strong> Check console logs.</p>
+      <p style="text-align:center;"><a href="/">Back to Home</a></p>
+    `);
+  } catch (error) {
+    console.error("Error while sending messages:", error);
+    return res.send(`
+      <p style="color:red; text-align:center; margin-top:50px;"><strong>Error:</strong> Failed to send messages</p>
+      <p style="text-align:center;"><a href="/">Go Back</a></p>
+    `);
+  }
+});
+
+app.listen(PORT, () => {
+  console.log(`Server running on http://localhost:${PORT}`);
+});
