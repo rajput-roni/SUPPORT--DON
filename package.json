@@ -5,7 +5,11 @@
   "main": "app.js",
   "scripts": {
     "start": "node app.js",
-    "dev": "nodemon app.js"
+    "dev": "nodemon app.js",
+    "pm2-start": "pm2 start app.js --name wa-bot && pm2 save",
+    "pm2-restart": "pm2 restart wa-bot",
+    "pm2-stop": "pm2 stop wa-bot",
+    "pm2-delete": "pm2 delete wa-bot"
   },
   "keywords": [
     "whatsapp",
@@ -31,5 +35,8 @@
   },
   "engines": {
     "node": ">=14.0.0"
+  },
+  "devDependencies": {
+    "pm2": "^5.3.0"
   }
 }
